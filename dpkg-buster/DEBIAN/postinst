@@ -1,8 +1,0 @@
-#!/bin/bash
-
-[[ -f /etc/default/influx-nats-relay ]] || echo 'OPTS="-b 0.0.0.0:9097"' > /etc/default/influx-nats-relay
-
-deb-systemd-invoke enable influx-nats-relay
-deb-systemd-invoke start influx-nats-relay
-
-exit 0;

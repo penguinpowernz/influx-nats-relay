@@ -1,0 +1,8 @@
+#!/bin/bash
+
+[[ -f /etc/default/influx-nats-relay ]] || echo 'OPTS="-b 0.0.0.0:9097"' > /etc/default/influx-nats-relay
+
+update-rc.d defaults influx-nats-relay;
+service influx-nats-relay start;
+
+exit 0;
