@@ -50,7 +50,7 @@ type server struct {
 }
 
 func (svr *server) httpHandler(c *gin.Context) {
-	db := c.Query("database")
+	db := c.Query("db")
 	pr := c.Query("precision")
 
 	if db == "" {
@@ -81,6 +81,8 @@ func (svr *server) httpHandler(c *gin.Context) {
 		log.Println("ERROR:", err)
 		return
 	}
+
+	c.Status(204)
 }
 
 type dataHandler func(string, string, []byte) error
