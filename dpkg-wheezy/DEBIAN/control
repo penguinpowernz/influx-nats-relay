@@ -2,11 +2,11 @@ Package: influx-nats-relay
 Version: 0.0.1
 Section: misc
 Priority: optional
-Architecture: all
+Architecture: amd64
 Maintainer: Robert McLeod <robert@penguinpower.co.nz>
 Essential: no
 Homepage: https://github.com/penguinpowernz/influx-nats-relay
-Installed-Size: 19739
+Installed-Size: 9878
 Description: An InfluxDB relay that publishes data over NATS
   An InfluxDB relay that publishes data over NATS rather than
   to an InfluxDB server.
