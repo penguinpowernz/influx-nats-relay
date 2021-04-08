@@ -28,14 +28,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	nc, err := nats.Connect(natsURL)
-	if err != nil {
-		panic(err)
-	}
+	pool := newPool(natsURL)
 
-	dh := newRawDataHandler(nc, subj)
+	dh := newRawDataHandler(pool.Publish, subj)
 	if jsonMode {
-		dh = newJSONDataHandler(nc, subj)
+		dh = newJSONDataHandler(pool.Publish, subj)
 	}
 
 	svr := &server{dh}
@@ -86,16 +83,17 @@ func (svr *server) httpHandler(c *gin.Context) {
 }
 
 type dataHandler func(string, string, []byte) error
+type publishFunc func(string, []byte) error
 
-func newRawDataHandler(nc *nats.Conn, ptn string) dataHandler {
+func newRawDataHandler(publish publishFunc, ptn string) dataHandler {
 	return func(db string, precision string, data []byte) error {
 		ptn = strings.Replace(ptn, "$db", db, 1)
 		ptn = strings.Replace(ptn, "$precision", precision, 1)
-		return nc.Publish(ptn, data)
+		return publish(ptn, data)
 	}
 }
 
-func newJSONDataHandler(nc *nats.Conn, ptn string) dataHandler {
+func newJSONDataHandler(publish publishFunc, ptn string) dataHandler {
 	return func(db string, precision string, data []byte) error {
 		ptn = strings.Replace(ptn, "$db", db, 1)
 		ptn = strings.Replace(ptn, "$precision", precision, 1)
@@ -110,6 +108,6 @@ func newJSONDataHandler(nc *nats.Conn, ptn string) dataHandler {
 			return err
 		}
 
-		return nc.Publish(ptn, data)
+		return publish(ptn, data)
 	}
 }
