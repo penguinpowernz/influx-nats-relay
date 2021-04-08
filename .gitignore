@@ -1,3 +1,4 @@
 *.deb
-dpkg-*/usr/bin
+dpkg/wheezy/usr/bin/*
+dpkg/buster/usr/bin/*
 bin/*
