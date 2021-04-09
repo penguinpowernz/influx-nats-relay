@@ -21,7 +21,7 @@ func main() {
 	var statsInterval int
 
 	flag.IntVar(&statsInterval, "i", 0, "how often to write the stats (0 = disabled)")
-	flag.StringVar(&statsURL, "s", "http://localhost:8186/write", "the InfluxDB server/telegraf listener to write stats to")
+	flag.StringVar(&statsURL, "t", "http://localhost:8186/write", "the InfluxDB server/telegraf listener to write stats to")
 	flag.StringVar(&natsURL, "u", nats.DefaultURL, "the NATS URL to connect to")
 	flag.StringVar(&bind, "b", ":9097", "the address to serve the relay on")
 	flag.StringVar(&subj, "s", "influx.raw.$db.$precision", "the subject to use, $db and $precision not required for JSON mode")
