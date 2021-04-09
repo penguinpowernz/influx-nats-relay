@@ -7,15 +7,21 @@ import (
 	"log"
 	"os"
 	"strings"
+	"time"
+
+	cache "github.com/patrickmn/go-cache"
 
 	"github.com/gin-gonic/gin"
 	"github.com/nats-io/nats.go"
 )
 
 func main() {
-	var natsURL, bind, subj string
+	var natsURL, bind, subj, statsURL string
 	var jsonMode bool
+	var statsInterval int
 
+	flag.IntVar(&statsInterval, "i", 0, "how often to write the stats (0 = disabled)")
+	flag.StringVar(&statsURL, "s", "http://localhost:8186/write", "the InfluxDB server/telegraf listener to write stats to")
 	flag.StringVar(&natsURL, "u", nats.DefaultURL, "the NATS URL to connect to")
 	flag.StringVar(&bind, "b", ":9097", "the address to serve the relay on")
 	flag.StringVar(&subj, "s", "influx.raw.$db.$precision", "the subject to use, $db and $precision not required for JSON mode")
@@ -35,15 +41,35 @@ func main() {
 		dh = newJSONDataHandler(pool.Publish, subj)
 	}
 
-	svr := &server{dh}
-	api := gin.Default()
+	hostsCache := cache.New(5*time.Minute, 10*time.Minute)
 
+	svr := &server{
+		dataHandler: dh,
+		hosts:       hostsCache,
+	}
+
+	// log the stats every interval if enabled
+	if statsInterval > 0 {
+		go func() {
+			t := time.NewTicker(time.Second * time.Duration(statsInterval))
+			for {
+				<-t.C
+				sendStats(statsURL, pool, svr)
+			}
+		}()
+	}
+
+	api := gin.Default()
 	api.POST("/write", svr.httpHandler)
 	api.Run(bind)
 }
 
 type server struct {
 	dataHandler dataHandler
+	hosts       *cache.Cache
+
+	reqCount       int64
+	upstreamErrors int64
 }
 
 func (svr *server) httpHandler(c *gin.Context) {
@@ -64,18 +90,23 @@ func (svr *server) httpHandler(c *gin.Context) {
 	data, err := ioutil.ReadAll(c.Request.Body)
 	if err != nil {
 		c.AbortWithStatusJSON(400, "failed to read payload body: "+err.Error())
-		log.Println("ERROR:", err)
+		log.Printf("ERROR: %s: %s", c.ClientIP(), err)
 		return
 	}
 
 	if len(data) == 0 {
 		c.AbortWithStatusJSON(400, "no data given in payload")
+		log.Printf("ERROR: %s: %s", c.ClientIP(), "no data given in payload")
 		return
 	}
+
+	svr.hosts.IncrementInt(c.ClientIP(), 1)
+	svr.reqCount++
 
 	if err := svr.dataHandler(db, pr, data); err != nil {
 		c.AbortWithStatusJSON(504, "upstream server returned error: "+err.Error())
 		log.Println("ERROR:", err)
+		svr.upstreamErrors++
 		return
 	}
 

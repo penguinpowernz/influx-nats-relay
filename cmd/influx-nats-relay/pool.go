@@ -10,6 +10,8 @@ import (
 	"github.com/nats-io/nats.go"
 )
 
+var ErrNoServers = errors.New("no servers available")
+
 type pool struct {
 	conns []*nats.Conn
 }
@@ -19,7 +21,7 @@ func newPool(connstring string) *pool {
 	for _, url := range strings.Split(connstring, ",") {
 		nc, err := nats.Connect(url)
 		if err == nats.ErrNoServers {
-			go pl.connectForever(url)
+			go pl.ConnectForever(url)
 			break
 		}
 		pl.conns = append(pl.conns, nc)
@@ -27,7 +29,20 @@ func newPool(connstring string) *pool {
 	return pl
 }
 
-func (pl *pool) connectForever(url string) {
+// Stats will returns nats.Statistics objects for every connection
+// in the pool, indexed by the connection URL
+func (pl *pool) Stats() map[string]nats.Statistics {
+	s := map[string]nats.Statistics{}
+	for _, nc := range pl.conns {
+		s[nc.Opts.Url] = nc.Stats()
+	}
+	return s
+}
+
+// ConnectForever will take the given URL and provided the error message
+// represents a connection refused condition (nats.ErrNoServers) it will
+// continue trying to connect to the URL using a backoff algorithm
+func (pl *pool) ConnectForever(url string) {
 	for {
 		expo := backoff.NewExponentialBackOff()
 
@@ -48,8 +63,9 @@ func (pl *pool) connectForever(url string) {
 	}
 }
 
-var ErrNoServers = errors.New("no servers available")
-
+// Publish will select a random connection from the pool and call the
+// publish method on it to send the given data to the given topic
+// in a rudimentary method of load balancing
 func (pl *pool) Publish(topic string, data []byte) error {
 	if len(pl.conns) == 0 {
 		return ErrNoServers
