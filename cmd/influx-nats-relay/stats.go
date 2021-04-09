@@ -15,8 +15,8 @@ func sendStats(statsURL string, pl *pool, svr *server) error {
 
 	var hostname string
 	_hostname, err := os.Hostname()
-	if _hostname == "" || err != nil {
-		hostname = ",host=" + hostname
+	if _hostname != "" && err == nil {
+		hostname = ",host=" + _hostname
 	}
 
 	pstats := pl.Stats()

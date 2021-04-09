@@ -54,7 +54,9 @@ func main() {
 			t := time.NewTicker(time.Second * time.Duration(statsInterval))
 			for {
 				<-t.C
-				sendStats(statsURL, pool, svr)
+				if err := sendStats(statsURL, pool, svr); err != nil {
+					log.Printf("ERROR: failed to send stats: %s", err)
+				}
 			}
 		}()
 	}

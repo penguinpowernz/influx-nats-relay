@@ -34,7 +34,11 @@ func newPool(connstring string) *pool {
 func (pl *pool) Stats() map[string]nats.Statistics {
 	s := map[string]nats.Statistics{}
 	for _, nc := range pl.conns {
-		s[nc.Opts.Url] = nc.Stats()
+		url := nc.Opts.Url
+		if url == "" && len(nc.Opts.Servers) > 0 {
+			url = nc.Opts.Servers[0]
+		}
+		s[url] = nc.Stats()
 	}
 	return s
 }
