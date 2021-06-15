@@ -48,7 +48,7 @@ func sendStats(statsURL string, pl *pool, svr *server) error {
 
 	for name, count := range items {
 		line := "influx_nats_relay" + hostname + ",ip=" + name
-		line += fmt.Sprintf(" reqs=%d", count)
+		line += fmt.Sprintf(" reqs=%d", count.Object)
 		line += fmt.Sprintf(" %d", time.Now().UnixNano())
 		lines.WriteString(line + "\n")
 	}
